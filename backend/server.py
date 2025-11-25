@@ -70,6 +70,83 @@ async def get_status_checks():
     
     return status_checks
 
+
+# GhostLink Routes
+@api_router.post("/links/create", response_model=CreateLinkResponse)
+async def create_smart_link(request: CreateLinkRequest):
+    """
+    Create a new smart link with AI-powered expiry rule parsing.
+    """
+    try:
+        link_data = await create_link(db, request)
+        return CreateLinkResponse(
+            success=True,
+            data=link_data
+        )
+    except Exception as e:
+        logger.error(f"Error creating link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/links/{short_code}")
+async def get_link(short_code: str):
+    """
+    Get link details by short code.
+    """
+    try:
+        link = await get_link_by_short_code(db, short_code)
+        if not link:
+            raise HTTPException(status_code=404, detail="Link not found")
+        
+        return {
+            "success": True,
+            "data": {
+                "originalUrl": link['originalUrl'],
+                "status": link['status'],
+                "expiryInfo": link['expiryRules']
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/links/{short_code}/click", response_model=ClickResponse)
+async def track_link_click(short_code: str):
+    """
+    Track a click on a link and check expiry.
+    """
+    try:
+        result = await track_click(db, short_code)
+        return ClickResponse(**result)
+    except Exception as e:
+        logger.error(f"Error tracking click: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/links/stats/{link_id}")
+async def get_link_statistics(link_id: str):
+    """
+    Get statistics for a specific link.
+    """
+    try:
+        stats = await get_link_stats(db, link_id)
+        if not stats:
+            raise HTTPException(status_code=404, detail="Link not found")
+        
+        return {
+            "success": True,
+            "data": stats
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
