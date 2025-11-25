@@ -5,7 +5,10 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Link2, Loader2, Sparkles } from 'lucide-react';
-import { mockCreateLink } from '../mock';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const FormCard = ({ onLinkCreated }) => {
   const [url, setUrl] = useState('');
