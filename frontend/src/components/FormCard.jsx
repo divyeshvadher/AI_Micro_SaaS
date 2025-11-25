@@ -53,10 +53,19 @@ const FormCard = ({ onLinkCreated }) => {
     setLoading(true);
     
     try {
-      const result = await mockCreateLink(url, expiryText);
-      onLinkCreated(result);
+      const response = await axios.post(`${API}/links/create`, {
+        originalUrl: url,
+        expiryText: expiryText
+      });
+      
+      if (response.data.success) {
+        onLinkCreated(response.data.data);
+      } else {
+        setErrors({ submit: 'Failed to create link. Please try again.' });
+      }
     } catch (error) {
-      setErrors({ submit: 'Something went wrong. Please try again.' });
+      console.error('Error creating link:', error);
+      setErrors({ submit: error.response?.data?.detail || 'Something went wrong. Please try again.' });
     } finally {
       setLoading(false);
     }
