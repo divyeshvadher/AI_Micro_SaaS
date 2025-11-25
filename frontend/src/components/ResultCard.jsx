@@ -21,8 +21,8 @@ const ResultCard = ({ linkData }) => {
   };
 
   const getProgressPercentage = () => {
-    if (linkData.expiryInfo.type === 'clicks' && linkData.expiryInfo.limit) {
-      return (linkData.expiryInfo.current / linkData.expiryInfo.limit) * 100;
+    if (linkData.expiryInfo.type === 'clicks' && linkData.expiryInfo.clickLimit) {
+      return (linkData.expiryInfo.currentClicks / linkData.expiryInfo.clickLimit) * 100;
     }
     return 0;
   };
