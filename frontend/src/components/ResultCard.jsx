@@ -86,7 +86,7 @@ const ResultCard = ({ linkData }) => {
           </div>
 
           {/* Click Progress */}
-          {linkData.expiryInfo.type === 'clicks' && (
+          {(linkData.expiryInfo.type === 'clicks' || linkData.expiryInfo.type === 'hybrid') && linkData.expiryInfo.clickLimit && (
             <div className="space-y-2 mt-4">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1">
@@ -94,7 +94,7 @@ const ResultCard = ({ linkData }) => {
                   <span className="font-medium">Clicks Used</span>
                 </div>
                 <span className="text-gray-600">
-                  {linkData.expiryInfo.current} / {linkData.expiryInfo.limit}
+                  {linkData.expiryInfo.currentClicks} / {linkData.expiryInfo.clickLimit}
                 </span>
               </div>
               <Progress 
