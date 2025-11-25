@@ -106,9 +106,9 @@ const ResultCard = ({ linkData }) => {
         </div>
 
         {/* Info Message */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-xs text-blue-800">
-            <strong>Note:</strong> This is a mock preview. In the full version, this link will automatically expire based on your rules and track real clicks.
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-xs text-green-800">
+            <strong>Success!</strong> Your smart link is now active and will automatically expire based on your rules. Share it and track engagement!
           </p>
         </div>
       </CardContent>
