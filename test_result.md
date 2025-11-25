@@ -101,3 +101,116 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the GhostLink backend API with endpoints for creating smart links with AI-powered expiry parsing"
+
+backend:
+  - task: "Root API endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/ endpoint working correctly, returns 'GhostLink API - Self-Destructing Smart Links' message"
+
+  - task: "Create smart link with click-based expiry"
+    implemented: true
+    working: true
+    file: "backend/services/link_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST /api/links/create with click-based expiry working correctly. AI parses 'expire after 3 clicks' and returns type='clicks', clickLimit=3, status='active', currentClicks=0"
+
+  - task: "Create smart link with time-based expiry"
+    implemented: true
+    working: true
+    file: "backend/services/link_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST /api/links/create with time-based expiry working correctly. AI parses 'expire in 24 hours' and returns type='time', timeLimit set to future datetime"
+
+  - task: "Create smart link with hybrid expiry"
+    implemented: true
+    working: true
+    file: "backend/services/link_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Initially failed due to malformed .env file causing Gemini AI integration to fail, falling back to basic parser"
+        - working: true
+          agent: "testing"
+          comment: "Fixed .env file formatting issue. AI now correctly parses 'expire after 5 clicks or tomorrow' as type='hybrid' with both clickLimit=5 and timeLimit set"
+
+  - task: "Get link details by short code"
+    implemented: true
+    working: true
+    file: "backend/services/link_service.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/links/{short_code} endpoint working correctly, returns originalUrl, status, and expiryInfo"
+
+  - task: "Track link clicks"
+    implemented: true
+    working: true
+    file: "backend/services/link_service.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST /api/links/{short_code}/click endpoint working correctly, increments click count and returns shouldRedirect, currentClicks, status"
+
+  - task: "Gemini AI expiry parsing integration"
+    implemented: true
+    working: true
+    file: "backend/services/ai_parser.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Gemini AI integration failing due to malformed GEMINI_API_KEY in .env file (missing newline)"
+        - working: true
+          agent: "testing"
+          comment: "Fixed .env file formatting. Gemini AI now working correctly, parsing natural language expiry rules and returning proper JSON responses with intelligent parsing"
+
+frontend:
+  # No frontend testing performed as per instructions
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "All backend API endpoints tested and working"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Completed comprehensive backend API testing. All 6 core endpoints working correctly. Fixed critical .env file formatting issue that was preventing Gemini AI integration. All requested test scenarios (click-based, time-based, hybrid expiry) are functioning properly with intelligent AI parsing."
