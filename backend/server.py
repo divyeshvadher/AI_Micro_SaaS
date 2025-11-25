@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,6 +9,10 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 import uuid
 from datetime import datetime, timezone
+
+# Import our custom modules
+from models import CreateLinkRequest, CreateLinkResponse, ClickResponse
+from services.link_service import create_link, get_link_by_short_code, track_click, get_link_stats
 
 
 ROOT_DIR = Path(__file__).parent
