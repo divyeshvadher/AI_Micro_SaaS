@@ -5,6 +5,9 @@ from models import Link, ExpiryRules, CreateLinkRequest
 from utils.short_code import generate_unique_short_code
 from services.ai_parser import parse_expiry_with_gemini
 
+IN_MEMORY_LINKS_BY_CODE = {}
+IN_MEMORY_LINKS_BY_ID = {}
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,15 +49,19 @@ async def create_link(db: AsyncIOMotorDatabase, request: CreateLinkRequest) -> d
             status="active"
         )
         
-        # Save to MongoDB
         link_dict = link.dict()
-        await db.links.insert_one(link_dict)
-        logger.info(f"Link created: {short_code}")
+        try:
+            await db.links.insert_one(link_dict)
+            logger.info(f"Link created: {short_code}")
+        except Exception:
+            IN_MEMORY_LINKS_BY_CODE[short_code] = link_dict
+            IN_MEMORY_LINKS_BY_ID[link.id] = link_dict
+            logger.info(f"Link stored in memory: {short_code}")
         
         # Return response
         return {
             "id": link.id,
-            "shortLink": f"https://ghost.link/{short_code}",
+            "shortLink": f"http://localhost:8001/{short_code}",
             "shortCode": short_code,
             "originalUrl": link.originalUrl,
             "expiryInfo": {
@@ -84,7 +91,53 @@ async def get_link_by_short_code(db: AsyncIOMotorDatabase, short_code: str) -> d
     Returns:
         Dictionary with link data or None if not found
     """
-    link = await db.links.find_one({"shortCode": short_code})
+    try:
+        link = await db.links.find_one({"shortCode": short_code})
+    except Exception:
+        link = IN_MEMORY_LINKS_BY_CODE.get(short_code)
+
+    if not link:
+        return None
+
+    try:
+        expiry_rules = link.get('expiryRules') or {}
+        # Compute effective expiry by time or clicks
+        expired = False
+        tl = expiry_rules.get('timeLimit')
+        if tl:
+            if isinstance(tl, str):
+                time_limit = datetime.fromisoformat(tl.replace('Z', '+00:00'))
+            else:
+                time_limit = tl
+            if time_limit.tzinfo is None:
+                from datetime import timezone
+                time_limit = time_limit.replace(tzinfo=timezone.utc)
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc)
+            if now_utc >= time_limit:
+                expired = True
+        cl = expiry_rules.get('clickLimit')
+        clicks = link.get('clicks', 0)
+        if cl is not None and cl != None:
+            try:
+                limit = int(cl)
+                if clicks >= limit:
+                    expired = True
+            except Exception:
+                pass
+
+        if expired and link.get('status') != 'expired':
+            update_data = {"status": "expired"}
+            try:
+                await db.links.update_one({"shortCode": short_code}, {"$set": update_data})
+            except Exception:
+                if short_code in IN_MEMORY_LINKS_BY_CODE:
+                    IN_MEMORY_LINKS_BY_CODE[short_code].update(update_data)
+                    IN_MEMORY_LINKS_BY_ID[IN_MEMORY_LINKS_BY_CODE[short_code]['id']].update(update_data)
+            link.update(update_data)
+    except Exception:
+        pass
+
     return link
 
 
@@ -100,8 +153,11 @@ async def track_click(db: AsyncIOMotorDatabase, short_code: str) -> dict:
         Dictionary with click tracking result
     """
     try:
-        # Get link
-        link = await db.links.find_one({"shortCode": short_code})
+        link = None
+        try:
+            link = await db.links.find_one({"shortCode": short_code})
+        except Exception:
+            link = IN_MEMORY_LINKS_BY_CODE.get(short_code)
         if not link:
             return {
                 "success": False,
@@ -127,29 +183,40 @@ async def track_click(db: AsyncIOMotorDatabase, short_code: str) -> dict:
         should_expire = False
         expiry_rules = link['expiryRules']
         
-        # Check click limit
-        if expiry_rules['clickLimit'] and new_click_count >= expiry_rules['clickLimit']:
+        # Check click limit (expire when count reaches limit)
+        if expiry_rules['clickLimit'] and new_click_count > expiry_rules['clickLimit']:
             should_expire = True
-            logger.info(f"Link {short_code} reached click limit")
+            logger.info(f"Link {short_code} reached click limit (> {expiry_rules['clickLimit']})")
         
         # Check time limit
         if expiry_rules['timeLimit']:
-            time_limit = datetime.fromisoformat(expiry_rules['timeLimit'].replace('Z', '+00:00'))
-            if datetime.utcnow() >= time_limit:
+            tl = expiry_rules['timeLimit']
+            if isinstance(tl, str):
+                time_limit = datetime.fromisoformat(tl.replace('Z', '+00:00'))
+            else:
+                time_limit = tl
+            if time_limit.tzinfo is None:
+                from datetime import timezone
+                time_limit = time_limit.replace(tzinfo=timezone.utc)
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc)
+            if now_utc >= time_limit:
                 should_expire = True
                 logger.info(f"Link {short_code} reached time limit")
         
-        # Update link
-        update_data = {
-            "clicks": new_click_count
-        }
+        update_data = {"clicks": new_click_count}
         if should_expire:
             update_data["status"] = "expired"
-        
-        await db.links.update_one(
-            {"shortCode": short_code},
-            {"$set": update_data}
-        )
+
+        try:
+            await db.links.update_one(
+                {"shortCode": short_code},
+                {"$set": update_data}
+            )
+        except Exception:
+            if short_code in IN_MEMORY_LINKS_BY_CODE:
+                IN_MEMORY_LINKS_BY_CODE[short_code].update(update_data)
+                IN_MEMORY_LINKS_BY_ID[IN_MEMORY_LINKS_BY_CODE[short_code]['id']].update(update_data)
         
         return {
             "success": True,
@@ -175,7 +242,11 @@ async def get_link_stats(db: AsyncIOMotorDatabase, link_id: str) -> dict:
     Returns:
         Dictionary with link statistics
     """
-    link = await db.links.find_one({"id": link_id})
+    link = None
+    try:
+        link = await db.links.find_one({"id": link_id})
+    except Exception:
+        link = IN_MEMORY_LINKS_BY_ID.get(link_id)
     if not link:
         return None
     

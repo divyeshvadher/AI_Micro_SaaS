@@ -21,7 +21,10 @@ async def generate_unique_short_code(db: AsyncIOMotorDatabase, length: int = 6) 
         short_code = ''.join(random.choice(chars) for _ in range(length))
         
         # Check if code already exists
-        existing = await db.links.find_one({"shortCode": short_code})
+        try:
+            existing = await db.links.find_one({"shortCode": short_code})
+        except Exception:
+            existing = None
         if not existing:
             return short_code
     

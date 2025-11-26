@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -44,7 +45,7 @@ class StatusCheckCreate(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "GhostLink API - Self-Destructing Smart Links"}
+    return {"message": "XpireLink API - Self-Destructing Smart Links"}
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
@@ -98,12 +99,27 @@ async def get_link(short_code: str):
         if not link:
             raise HTTPException(status_code=404, detail="Link not found")
         
+        expiry = link.get('expiryRules', {})
+        time_limit = expiry.get('timeLimit')
+        if isinstance(time_limit, str):
+            formatted_time_limit = time_limit
+        elif time_limit is not None:
+            formatted_time_limit = time_limit.isoformat() + 'Z'
+        else:
+            formatted_time_limit = None
+
         return {
             "success": True,
             "data": {
                 "originalUrl": link['originalUrl'],
                 "status": link['status'],
-                "expiryInfo": link['expiryRules']
+                "expiryInfo": {
+                    "summary": expiry.get('summary'),
+                    "type": expiry.get('type'),
+                    "clickLimit": expiry.get('clickLimit'),
+                    "timeLimit": formatted_time_limit,
+                    "currentClicks": link.get('clicks', 0)
+                }
             }
         }
     except HTTPException:
@@ -111,6 +127,10 @@ async def get_link(short_code: str):
     except Exception as e:
         logger.error(f"Error getting link: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/link/{short_code}")
+async def get_link_alias(short_code: str):
+    return await get_link(short_code)
 
 
 @api_router.post("/links/{short_code}/click", response_model=ClickResponse)
@@ -168,3 +188,45 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# Minimal expired HTML page
+def expired_html(link: dict) -> str:
+    summary = (link.get('expiryRules') or {}).get('summary') or 'This link has expired.'
+    return f"""
+    <!doctype html>
+    <html><head><meta charset='utf-8'><title>Link Expired</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+    body{{font-family:system-ui,-apple-system,Segoe UI,Roboto;display:flex;align-items:center;justify-content:center;height:100vh;background:#fafafa;color:#111}}
+    .card{{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);max-width:560px;width:90%;padding:24px}}
+    .badge{{display:inline-block;padding:4px 10px;border-radius:9999px;background:#fee2e2;color:#991b1b;font-weight:600;font-size:12px;margin-bottom:8px}}
+    .title{{font-size:20px;font-weight:700;margin:0 0 8px}}
+    .desc{{font-size:14px;color:#374151;margin:0 0 12px}}
+    </style></head>
+    <body>
+      <div class='card'>
+        <div class='badge'>Expired</div>
+        <h1 class='title'>This XpireLink has expired</h1>
+        <p class='desc'>{summary}</p>
+      </div>
+    </body></html>
+    """
+
+# Redirect short code at root
+@app.get("/{short_code}")
+async def redirect_short_code(short_code: str):
+    try:
+        result = await track_click(db, short_code)
+        if result.get("shouldRedirect") and result.get("originalUrl"):
+            return RedirectResponse(url=result["originalUrl"], status_code=307)
+        link = await get_link_by_short_code(db, short_code)
+        return HTMLResponse(content=expired_html(link or {}), status_code=410)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error redirecting: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/l/{short_code}")
+async def redirect_alias(short_code: str):
+    return await redirect_short_code(short_code)

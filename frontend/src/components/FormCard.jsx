@@ -72,11 +72,12 @@ const FormCard = ({ onLinkCreated }) => {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg border-cyan-100 hover:shadow-xl transition-all duration-300">
+    <Card className="w-full max-w-2xl mx-auto shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl bg-white/80 backdrop-blur border border-slate-200 relative">
+      <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{boxShadow:'0 0 0 1px rgba(99,102,241,0.15)'}}></div>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl flex items-center gap-2">
-          <Link2 className="w-6 h-6 text-cyan-600" />
-          Create Smart Link
+          <Link2 className="w-6 h-6 text-teal-600" />
+          Create {APP_NAME}
         </CardTitle>
         <CardDescription>
           Enter your URL and describe how you want it to expire
@@ -94,7 +95,7 @@ const FormCard = ({ onLinkCreated }) => {
               placeholder="https://example.com/your-long-url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className={`transition-all duration-200 ${errors.url ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-cyan-500'}`}
+              className={`transition-all duration-200 rounded-xl ${errors.url ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-teal-500'} bg-white/70 backdrop-blur`}
             />
             {errors.url && (
               <p className="text-sm text-red-500 animate-in slide-in-from-top-1">{errors.url}</p>
@@ -114,7 +115,7 @@ const FormCard = ({ onLinkCreated }) => {
               value={expiryText}
               onChange={(e) => setExpiryText(e.target.value)}
               rows={3}
-              className={`transition-all duration-200 resize-none ${errors.expiryText ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-cyan-500'}`}
+              className={`transition-all duration-200 resize-none rounded-xl ${errors.expiryText ? 'border-red-500 focus-visible:ring-red-500' : 'focus-visible:ring-teal-500'} bg-white/70 backdrop-blur`}
             />
             {errors.expiryText && (
               <p className="text-sm text-red-500 animate-in slide-in-from-top-1">{errors.expiryText}</p>
@@ -133,17 +134,17 @@ const FormCard = ({ onLinkCreated }) => {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-medium py-6 transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-teal-600 via-cyan-600 to-purple-600 hover:brightness-105 text-white font-medium py-6 transition-all duration-300 hover:shadow-xl rounded-xl disabled:opacity-50"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Smart Link...
+                Creating {APP_NAME}...
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Create Smart Link
+                Create {APP_NAME}
               </>
             )}
           </Button>
@@ -154,3 +155,4 @@ const FormCard = ({ onLinkCreated }) => {
 };
 
 export default FormCard;
+import { APP_NAME } from '../config/app';

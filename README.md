@@ -1,4 +1,4 @@
-# GhostLink - Self-Destructing Smart Links
+# XpireLink — AI-Powered Self-Destructing Links
 
 Create smart links that automatically expire based on custom rules described in natural language.
 
@@ -14,66 +14,78 @@ Create smart links that automatically expire based on custom rules described in 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 14+ and Yarn
-- Python 3.8+
-- MongoDB
+- Node.js 18+ and Yarn
+- Python 3.10+
+- MongoDB (optional; in-memory fallback is used if unavailable)
+- Google Gemini API key (for AI expiry parsing)
 
-### Installation
+### Setup
 
-1. **Install Dependencies**
+1. **Environment**
+```powershell
+# Backend (.env in backend/)
+setx MONGO_URL "mongodb://localhost:27017"
+setx DB_NAME "xpirelink"
+setx GEMINI_API_KEY "<your_api_key>"
 
-```bash
-# Frontend
-cd /app/frontend
-yarn install
+# Frontend (.env in frontend/)
+setx REACT_APP_BACKEND_URL "http://localhost:8001"
+```
 
+2. **Install Dependencies**
+```powershell
 # Backend
-cd /app/backend
+cd .\backend
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
+
+# Frontend
+cd ..\frontend
+yarn install
+```
+
+3. **Start Services**
+```powershell
+# Backend
+cd .\backend
+.\.venv\Scripts\activate
+python -m uvicorn server:app --host 0.0.0.0 --port 8001
+
+# Frontend (in a separate shell)
+cd .\frontend
+yarn start
 ```
 
 2. **Start Services**
 
-The application uses supervisor to manage services:
-
-```bash
-# Restart all services
-sudo supervisorctl restart all
-
-# Or individually
-sudo supervisorctl restart frontend
-sudo supervisorctl restart backend
-```
+Use the commands above to run backend (Uvicorn) and frontend (CRACO). Supervisor is not required for local development.
 
 3. **Access the Application**
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8001/api
 
-## 📦 Current Version (v0.1 - Frontend Only)
+## 🔗 API Endpoints
 
-**What's Working:**
-- ✅ Complete UI with form and result display
-- ✅ Client-side URL validation
-- ✅ Natural language parsing for expiry rules (mocked)
-- ✅ Loading states and animations
-- ✅ Copy-to-clipboard functionality
-- ✅ Progress tracking for click-based expiry
-- ✅ Responsive design
+- `POST /api/links/create` — Create a smart link with parsed expiry rules
+- `GET /api/links/{short_code}` — Fetch live metadata: status, clickLimit, timeLimit, currentClicks
+- `GET /api/link/{short_code}` — Alias for the above
+- `POST /api/links/{short_code}/click` — Increment click count and evaluate expiry
+- `GET /{short_code}` — Redirect to the original URL when active; returns an expired HTML page once expired
+- `GET /l/{short_code}` — Alias redirect route
 
-**What's Mocked:**
-- 🔶 Short link generation (uses random codes)
-- 🔶 Expiry rule parsing (basic pattern matching)
-- 🔶 Click tracking (random current values)
-- 🔶 No data persistence
+Expiry conditions:
+- Expired when `clicks >= clickLimit` or current time is past `timeLimit`
+- Status flips to `expired` and further accesses show the expired page (no redirects)
 
 ## 🔧 Tech Stack
 
-- **Frontend**: React 19, Tailwind CSS, shadcn/ui components
-- **Backend**: FastAPI (ready for integration)
-- **Database**: MongoDB (ready for integration)
-- **Icons**: Lucide React
-- **Font**: Inter (Google Fonts)
+- **Frontend**: React (CRACO dev), Tailwind CSS, shadcn/ui components, Lucide React
+- **Backend**: FastAPI, Uvicorn, Pydantic, Starlette CORS
+- **Data**: MongoDB via Motor (async); in-memory fallback when MongoDB is unavailable
+- **AI/NLP**: Gemini via `emergentintegrations.llm.chat` with `GEMINI_API_KEY`
+- **Config**: `python-dotenv` for environment variables
 
 ## 📝 Usage Examples
 
@@ -121,29 +133,29 @@ To transform this into a full-featured application:
 ## 📂 Project Structure
 
 ```
-/app/
+AI_Micro_SaaS/
 ├── frontend/
 │   └── src/
 │       ├── components/
 │       │   ├── FormCard.jsx       # Form for creating links
 │       │   ├── ResultCard.jsx     # Display created link details
-│       │   └── ui/                # shadcn components
+│       │   └── ui/                # UI primitives
 │       ├── pages/
 │       │   └── Home.jsx           # Main landing page
-│       ├── mock.js                # Mock data and functions
 │       ├── App.js                 # Root component
 │       └── index.css              # Global styles
 └── backend/
-    └── server.py                  # FastAPI server (ready for routes)
+    ├── server.py                  # FastAPI app & routes
+    └── services/
+        ├── link_service.py        # Create/fetch/redirect/expiry logic
+        └── ai_parser.py           # Gemini + fallback expiry parsing
 ```
 
 ## 🐛 Known Limitations
 
-- Currently frontend-only with mocked data
-- No actual link shortening or redirection
-- No data persistence
-- Expiry parsing is basic pattern matching
-- No user accounts or link management
+- MongoDB is optional; when unavailable, in-memory storage is used (data resets on restart)
+- Gemini parsing requires `GEMINI_API_KEY`; fallback parser covers common phrases
+- No authentication or analytics dashboard yet
 
 ## 💡 Tips
 
@@ -153,4 +165,4 @@ To transform this into a full-featured application:
 
 ---
 
-**Built with React • Currently using mocked data • Ready for backend integration**
+**Built with React + FastAPI • Live backend with AI parsing • MongoDB optional (in-memory fallback)**

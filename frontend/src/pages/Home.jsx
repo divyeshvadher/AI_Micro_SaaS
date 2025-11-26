@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import FormCard from '../components/FormCard';
 import ResultCard from '../components/ResultCard';
+import { APP_NAME } from '../config/app';
 import { Ghost, Zap } from 'lucide-react';
 
 const Home = () => {
@@ -23,33 +24,31 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-slate-50 to-zinc-50">
       {/* Header */}
       <header className="pt-16 pb-12 px-4">
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl shadow-lg">
-              <Ghost className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-cyan-900 to-blue-900 bg-clip-text text-transparent">
-              GhostLink
+            <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-cyan-500/80 via-teal-500/80 to-purple-500/80"></div>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-900 via-teal-900 to-purple-900 bg-clip-text text-transparent">
+              {APP_NAME}
             </h1>
           </div>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
             Create self-destructing smart links from any URL
           </p>
-          <p className="text-base text-gray-500 max-w-xl mx-auto">
-            Set custom expiry rules in plain English — links that vanish after N clicks, hours, or days
+          <p className="text-base text-gray-600 max-w-xl mx-auto">
+            Set custom expiry rules in plain English — links that vanish after clicks or time
           </p>
           
           {/* Feature Pills */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-cyan-200 rounded-full shadow-sm">
-              <Zap className="w-4 h-4 text-cyan-600" />
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur border border-cyan-200 rounded-full shadow-sm">
+              <span className="inline-block w-4 h-4 rounded-full bg-gradient-to-r from-cyan-500 to-teal-500"></span>
               <span className="text-sm text-gray-700">Natural Language Rules</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-cyan-200 rounded-full shadow-sm">
-              <Ghost className="w-4 h-4 text-cyan-600" />
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur border border-teal-200 rounded-full shadow-sm">
+              <span className="inline-block w-4 h-4 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"></span>
               <span className="text-sm text-gray-700">Auto-Expiring Links</span>
             </div>
           </div>
@@ -73,7 +72,7 @@ const Home = () => {
               <div className="text-center mt-6">
                 <button
                   onClick={handleCreateAnother}
-                  className="text-cyan-700 hover:text-cyan-800 font-medium text-sm underline underline-offset-4 transition-colors duration-200"
+                  className="text-teal-700 hover:text-teal-800 font-medium text-sm underline underline-offset-4 transition-colors duration-200"
                 >
                   Create Another Link
                 </button>
@@ -84,11 +83,9 @@ const Home = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-gray-200 bg-white/50 backdrop-blur-sm">
+      <footer className="py-8 px-4 border-t border-gray-200 bg-white/70 backdrop-blur">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-sm text-gray-500">
-            Built with React • Currently using mocked data • Ready for backend integration
-          </p>
+          <p className="text-sm text-gray-500">{APP_NAME} — AI-powered expiring links</p>
         </div>
       </footer>
     </div>

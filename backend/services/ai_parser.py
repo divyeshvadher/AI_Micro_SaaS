@@ -1,7 +1,6 @@
 import os
 import json
 from datetime import datetime, timedelta
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 from dotenv import load_dotenv
 import logging
 
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
-SYSTEM_PROMPT = """You are an expiry rule parser for a link shortener called GhostLink. Your job is to parse user's natural language input describing when a link should expire and return structured JSON.
+SYSTEM_PROMPT = """You are an expiry rule parser for a link shortener called XpireLink. Your job is to parse user's natural language input describing when a link should expire and return structured JSON.
 
 Rules:
 - Identify click-based expiry (e.g., "3 clicks", "after 5 clicks", "5 times")
@@ -53,48 +52,46 @@ async def parse_expiry_with_gemini(expiry_text: str) -> dict:
     try:
         current_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         system_message = SYSTEM_PROMPT.format(current_time=current_time)
-        
-        # Initialize Gemini chat
+
+        if not GEMINI_API_KEY:
+            raise ValueError("Missing GEMINI_API_KEY")
+
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+        except Exception as e:
+            raise e
+
         chat = LlmChat(
             api_key=GEMINI_API_KEY,
             session_id="expiry-parser",
             system_message=system_message
         ).with_model("gemini", "gemini-2.0-flash")
-        
-        # Send message to Gemini
+
         user_message = UserMessage(
             text=f"Parse this expiry rule: {expiry_text}"
         )
-        
+
         response = await chat.send_message(user_message)
         logger.info(f"Gemini raw response: {response}")
         
-        # Clean the response - remove markdown code blocks if present
         cleaned_response = response.strip()
         if cleaned_response.startswith('```'):
-            # Remove markdown code blocks
             lines = cleaned_response.split('\n')
             cleaned_response = '\n'.join(lines[1:-1] if len(lines) > 2 else lines)
             cleaned_response = cleaned_response.replace('```json', '').replace('```', '').strip()
         
-        # Parse JSON response
         parsed_data = json.loads(cleaned_response)
-        
-        # Validate required fields
         required_fields = ['type', 'clickLimit', 'timeLimit', 'summary']
         if not all(field in parsed_data for field in required_fields):
             raise ValueError("Missing required fields in AI response")
         
         return parsed_data
-        
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse Gemini response as JSON: {e}")
         logger.error(f"Raw response: {response}")
-        # Fallback to basic parsing
         return _fallback_parse(expiry_text)
     except Exception as e:
         logger.error(f"Error parsing expiry with Gemini: {e}")
-        # Fallback to basic parsing
         return _fallback_parse(expiry_text)
 
 
@@ -118,6 +115,17 @@ def _fallback_parse(expiry_text: str) -> dict:
         }
     
     # Time-based expiry
+    if 'min' in text or 'minute' in text or 'minutes' in text:
+        import re
+        minute_match = re.search(r'(\d+)\s*(min|mins|minute|minutes)', text)
+        minutes = int(minute_match.group(1)) if minute_match else 1
+        expiry_time = datetime.utcnow() + timedelta(minutes=minutes)
+        return {
+            "type": "time",
+            "clickLimit": None,
+            "timeLimit": expiry_time.isoformat() + 'Z',
+            "summary": f"Expires in {minutes} minute{'s' if minutes != 1 else ''}"
+        }
     if 'hour' in text:
         import re
         hour_match = re.search(r'(\d+)\s*hour', text)
